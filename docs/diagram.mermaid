@@ -1,0 +1,60 @@
+---
+config:
+  theme: base
+---
+flowchart TB
+    subgraph Operator["Operator (Telegram)"]
+        TG["/start /status /log /cancel /queue /help\nPlain text → ask_user reply"]
+    end
+
+    subgraph Service["agent-bot systemd service"]
+        direction TB
+
+        subgraph Bot["bot.py — Orchestrator"]
+            APP["python-telegram-bot\nApplication"]
+            LOOP["_queue_loop\nasyncio task"]
+            STATE["BotState\ncurrent session"]
+        end
+
+        QUEUE["queue.py\nPersistentQueue\nqueue.json"]
+        SOCK["socket_server.py\nSocketServer\nUDS ~/agent/run/bot.sock"]
+
+        subgraph Session["_run_session pipeline"]
+            JIRA["jira.py\nJiraClient\nfetch issue + attachments"]
+            GIT["git_ops.py\npreflight → branch\npush → gh pr create"]
+            PROMPT["prompt.py\nJinja2 render\nprompt.md.j2"]
+            RUNNER["claude_runner.py\nspawn subprocess\nstream-json → claude.log"]
+        end
+    end
+
+    subgraph Claude["Claude Code subprocess (per session)"]
+        CC["claude -p prompt.md\n--output-format stream-json\n--permission-mode acceptEdits"]
+        MCP["ask_user_mcp/server.py\nFastMCP stdio\nlaunched by Claude via .mcp.json"]
+    end
+
+    subgraph External["External Systems"]
+        JIRA_API["Jira REST API\n/rest/api/3/issue/{key}"]
+        GH["GitHub\ngh pr create"]
+        REPO["Git Repos\nazure_co4_backend\nazure_co4_webclient"]
+    end
+
+    TG -- "Telegram Bot API (polling)" --> APP
+    APP --> LOOP
+    LOOP -- dequeue --> QUEUE
+    QUEUE -- Job --> Session
+
+    Session -- enqueue / notify --> QUEUE
+    JIRA -- "fetch issue\ndownload attachments" --> JIRA_API
+    GIT -- "push branch\ncreate PR" --> GH
+    GIT -- "git fetch/switch/push" --> REPO
+    PROMPT -- "render" --> RUNNER
+    RUNNER -- "spawn" --> CC
+
+    CC -- "stdio MCP protocol" --> MCP
+    MCP -- "ask/notify/blocker\nJSON frames over UDS" --> SOCK
+    SOCK -- "on_ask: pending future\non_notify / on_blocker" --> STATE
+    STATE -- "send_message" --> TG
+
+    STATE -- "deliver_reply\n(operator plain-text reply)" --> SOCK
+    SOCK -- "future.set_result" --> MCP
+    MCP -- "return reply string" --> CC
