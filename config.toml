@@ -1,0 +1,25 @@
+[paths]
+sessions_dir = "~/agent/sessions"
+socket_path  = "~/agent/run/bot.sock"
+queue_file   = "~/agent/queue.json"
+log_file     = "~/agent/agent-bot.log"
+agent_home   = "~/agent"
+
+[repos.backend]
+path        = "/home/ntxinh/workspace/backend"
+base_branch = "qa"
+stack       = "ASP.NET Core 10 Web API"
+
+[repos.frontend]
+path        = "/home/ntxinh/workspace/frontend"
+base_branch = "qa"
+stack       = "Angular 20"
+
+[telegram]
+notify_level     = "minimal"
+log_tail_default = 50
+parse_mode       = "HTML"
+
+[session]
+retain_success_days = 30
+idle_nudge_minutes  = 15

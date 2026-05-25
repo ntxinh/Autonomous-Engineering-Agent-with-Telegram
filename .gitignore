@@ -1,0 +1,10 @@
+.env
+sessions/
+run/
+agent-bot.log
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+dist/
+build/

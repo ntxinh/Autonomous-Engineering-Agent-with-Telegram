@@ -1,0 +1,25 @@
+[Unit]
+Description=Autonomous Engineering Agent (Telegram bot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+WorkingDirectory=%h/agent
+ExecStart=/usr/bin/mise exec -- uv run agent-bot
+Restart=on-failure
+RestartSec=5s
+StandardOutput=append:%h/agent/agent-bot.log
+StandardError=append:%h/agent/agent-bot.log
+
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=full
+ProtectHome=read-only
+ReadWritePaths=%h/agent %h/.cache %h/.local /home/ntxinh/workspace
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictSUIDSGID=true
+
+[Install]
+WantedBy=default.target
